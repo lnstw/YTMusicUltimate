@@ -45,8 +45,8 @@ jobs:
 
       - name: Validate IPA URL
         run: |
-          # 透過 HEAD 請求取得檔案的 Content-Type
-          content_type=$(curl -sIL -o /dev/null -w "%{content_type}" "${{ inputs.ipa_url }}" | text -d ';' -f1 | tr -d '[:space:]')
+          # 透過 HEAD 請求取得檔案的 Content-Type（已修正 text 為 cut）
+          content_type=$(curl -sIL -o /dev/null -w "%{content_type}" "${{ inputs.ipa_url }}" | cut -d ';' -f1 | tr -d '[:space:]')
           
           echo "Detected Content-Type: $content_type"
           
