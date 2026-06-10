@@ -45,12 +45,14 @@ jobs:
 
       - name: Validate IPA URL
         run: |
-          curl -L -r 0-1023 -o sample.part "${{ inputs.ipa_url }}" > /dev/null 2>&1
+          # 透過 HEAD 請求取得檔案的 Content-Type
+          content_type=$(curl -sIL -o /dev/null -w "%{content_type}" "${{ inputs.ipa_url }}" | text -d ';' -f1 | tr -d '[:space:]')
           
-          file_type=$(file --mime-type -b sample.part)
-
-          if [[ "$file_type" != "application/x-ios-app" && "$file_type" != "application/zip" ]]; then
-            echo "::error::Validation failed: The file is not a valid IPA file. Detected type: $file_type."
+          echo "Detected Content-Type: $content_type"
+          
+          # 只要是 zip、octet-stream 或 iOS app 類型都放行
+          if [[ "$content_type" != "application/x-ios-app" && "$content_type" != "application/zip" && "$content_type" != "application/octet-stream" ]]; then
+            echo "::error::Validation failed: Expected an IPA/ZIP file, but got $content_type."
             exit 1
           fi
 
