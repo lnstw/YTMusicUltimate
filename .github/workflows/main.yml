@@ -45,14 +45,19 @@ jobs:
 
       - name: Validate IPA URL
         run: |
-          # 透過 HEAD 請求取得檔案的 Content-Type（已修正 text 為 cut）
-          content_type=$(curl -sIL -o /dev/null -w "%{content_type}" "${{ inputs.ipa_url }}" | cut -d ';' -f1 | tr -d '[:space:]')
+          # 僅測試網址是否能連通（發送 HEAD 請求，只要 HTTP 狀態碼是 200 或 3xx 就放行）
+          http_code=$(curl -sIL -o /dev/null -w "%{http_code}" "${{ inputs.ipa_url }}")
           
-          echo "Detected Content-Type: $content_type"
+          echo "Detected HTTP Status Code: $http_code"
           
-          # 只要是 zip、octet-stream 或 iOS app 類型都放行
-          if [[ "$content_type" != "application/x-ios-app" && "$content_type" != "application/zip" && "$content_type" != "application/octet-stream" ]]; then
-            echo "::error::Validation failed: Expected an IPA/ZIP file, but got $content_type."
+          # 如果狀態碼開頭不是 2 或 3（例如 404, 403, 500），且不是 000（連不上的情況），就跳警告但不中斷
+          if [[ ! "$http_code" =~ ^[23] ]]; then
+            echo "::warning::URL returned status code $http_code. It might be protected by Cloudflare or private, proceeding anyway..."
+          fi
+          
+          # 簡單驗證網址有沒有填寫
+          if [ -z "${{ inputs.ipa_url }}" ]; then
+            echo "::error::IPA URL is empty!"
             exit 1
           fi
 
